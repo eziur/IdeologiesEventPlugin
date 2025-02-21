@@ -126,11 +126,9 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    // --- Event Listeners ---
+    // Event Listeners
 
-    /**
-     * Control health regeneration rate and cap max health.
-     */
+    // Control health regeneration rate and cap max health.
     @EventHandler
     public void onHealthRegen(EntityRegainHealthEvent event) {
         Entity entity = event.getEntity();
@@ -151,10 +149,8 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    /**
-     * Control item durability (damage).
-     * A globalDurabilityModifier < 1 means items break faster, > 1 means they last longer.
-     */
+    // Control item durability
+    // A globalDurabilityModifier < 1 means items break faster, > 1 means they last longer.
     @EventHandler
     public void onItemDamage(PlayerItemDamageEvent event) {
         // event.getDamage() is how much durability is lost
@@ -164,15 +160,13 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         // If globalDurabilityModifier = 0.5, the item takes double damage (0.5x durability).
         double adjustedDamage = originalDamage / globalDurabilityModifier;
 
-        // Round up or down as you prefer (here we’ll round to nearest int)
+        // Round up or down as you prefer
         int finalDamage = (int) Math.round(adjustedDamage);
 
         event.setDamage(finalDamage);
     }
 
-    // --- In-Game Command Handling ---
-    // (We declared commands in plugin.yml)
-
+    // In Game Command Handling
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player) && args.length == 0) {
