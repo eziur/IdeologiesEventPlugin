@@ -1,0 +1,16 @@
+name: IdeologiesEventPlugin
+version: '1.0-FINAL'
+main: com.magicgum.ideologiesEventPlugin.IdeologiesEventPlugin
+api-version: '1.20'
+description: A Paper plugin that limits health regeneration and item durability
+
+commands:
+  setRegenRate:
+    description: Set the health regeneration rate
+    usage: /setRegenRate <value>
+  setMaxHealth:
+    description: Set the max health
+    usage: /setMaxHealth <value>
+  setDurabilityModifier:
+    description: Set the global durability modifier
+    usage: /setDurabilityModifier <value>
