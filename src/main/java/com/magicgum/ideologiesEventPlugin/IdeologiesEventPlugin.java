@@ -44,12 +44,12 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         // Register events
         getServer().getPluginManager().registerEvents(this, this);
 
-        getLogger().info("MyPlugin has been enabled!");
+        getLogger().info("IdeologiesPlugin enabled!");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("MyPlugin has been disabled!");
+        getLogger().info("IdeologiesPlugin disabled!");
     }
 
     private void loadConfigJson() {
@@ -149,18 +149,13 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    // Control item durability
-    // A globalDurabilityModifier < 1 means items break faster, > 1 means they last longer.
+    // Control item durability, durability damage is multiplied by globalDurability Modifier
     @EventHandler
     public void onItemDamage(PlayerItemDamageEvent event) {
         // event.getDamage() is how much durability is lost
         int originalDamage = event.getDamage();
 
-        // If globalDurabilityModifier = 2.0, the item takes half the damage (2x durability).
-        // If globalDurabilityModifier = 0.5, the item takes double damage (0.5x durability).
-        double adjustedDamage = originalDamage / globalDurabilityModifier;
-
-        // Round up or down as you prefer
+        double adjustedDamage = originalDamage * globalDurabilityModifier;
         int finalDamage = (int) Math.round(adjustedDamage);
 
         event.setDamage(finalDamage);
@@ -235,7 +230,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
             double value = Double.parseDouble(args[0]);
             globalDurabilityModifier = value;
             saveConfigJson();
-            sender.sendMessage("Global durability modifier set to " + value + "!");
+            sender.sendMessage("Global durability damage multiplier set to " + value + "!");
         } catch (NumberFormatException e) {
             sender.sendMessage("Invalid number!");
         }
