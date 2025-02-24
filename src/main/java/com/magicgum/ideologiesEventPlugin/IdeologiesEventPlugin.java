@@ -171,6 +171,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
                     player.hidePlayer(this, target);
+                    target.hidePlayer(this, player);
                 }
             }
         }
