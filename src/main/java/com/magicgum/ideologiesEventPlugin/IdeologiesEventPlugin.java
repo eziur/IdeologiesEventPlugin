@@ -23,6 +23,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
 public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
 
@@ -30,7 +32,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     private JsonObject configJson;
 
     // Cached config values
-    private double healthRegenRate;
+    private Map<String, Double> regenModifiers = new HashMap<>();
     private double maxHealth;
     private double globalDurabilityModifier;
     private boolean spectatorHeadsEnabled;
@@ -89,22 +91,14 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
 
     private void applyConfigValues() {
         // Set defaults if they are missing in the JSON
-        healthRegenRate = configJson.has("health_regen_rate")
-                ? configJson.get("health_regen_rate").getAsDouble()
-                : 1.0;
+        maxHealth = configJson.has("max_health") ? configJson.get("max_health").getAsDouble() : 20.0;
+        globalDurabilityModifier = configJson.has("global_durability_modifier") ? configJson.get("global_durability_modifier").getAsDouble() : 1.0;
+        spectatorHeadsEnabled = configJson.has("spectator_heads_enabled") ? configJson.get("spectator_heads_enabled").getAsBoolean() : true;
 
-        maxHealth = configJson.has("max_health")
-                ? configJson.get("max_health").getAsDouble()
-                : 20.0;
-
-        globalDurabilityModifier = configJson.has("global_durability_modifier")
-                ? configJson.get("global_durability_modifier").getAsDouble()
-                : 1.0;
-
-        spectatorHeadsEnabled = configJson.has("spectator_heads_enabled")
-                ? configJson.get("spectator_heads_enabled").getAsBoolean()
-                : true;
-
+        for (EntityRegainHealthEvent.RegainReason reason : EntityRegainHealthEvent.RegainReason.values()) {
+            String key = "regen_modifier_" + reason.name().toLowerCase();
+            regenModifiers.put(reason.name(), configJson.has(key) ? configJson.get(key).getAsDouble() : 1.0);
+        }
 
         // Apply the max health to all online players immediately
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -117,17 +111,17 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
             File configFile = new File(getDataFolder(), "config.json");
 
             // Update our in-memory JsonObject
-            configJson.addProperty("health_regen_rate", healthRegenRate);
             configJson.addProperty("max_health", maxHealth);
             configJson.addProperty("global_durability_modifier", globalDurabilityModifier);
             configJson.addProperty("spectator_heads_enabled", spectatorHeadsEnabled);
+            regenModifiers.forEach((key, value) -> configJson.addProperty("regen_modifier_" + key.toLowerCase(), value));
 
             // Write to disk
             try (FileWriter writer = new FileWriter(configFile)) {
                 gson.toJson(configJson, writer);
             }
-
             getLogger().info("Config saved to config.json!");
+
         } catch (Exception e) {
             e.printStackTrace();
             getLogger().severe("Error saving config.json: " + e.getMessage());
@@ -139,12 +133,11 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     // Control health regeneration rate and cap max health.
     @EventHandler
     public void onHealthRegen(EntityRegainHealthEvent event) {
-        Entity entity = event.getEntity();
-        if (entity instanceof Player player) {
+        if (event.getEntity() instanceof Player player) {
             // Adjust the regained amount by our multiplier
             double originalRegen = event.getAmount();
-            double modifiedRegen = originalRegen * healthRegenRate;
-            event.setAmount(modifiedRegen);
+            double modifier = regenModifiers.getOrDefault(event.getRegainReason().name(), 1.0);
+            event.setAmount(originalRegen * modifier);
 
             // After applying regen, we also want to ensure player's health won't exceed maxHealth
             // We'll do that by scheduling a small task afterward or by quick check.
@@ -187,15 +180,20 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     }
 
     private boolean handleSetRegenRate(CommandSender sender, String[] args) {
-        if (args.length != 1) {
-            sender.sendMessage("Usage: /setRegenRate <value>");
+        if (args.length != 2) {
+            sender.sendMessage("Usage: /setRegenRate <regen_reason> <value>");
             return true;
         }
         try {
-            double value = Double.parseDouble(args[0]);
-            healthRegenRate = value;
-            saveConfigJson();
-            sender.sendMessage("Health regeneration rate set to " + value);
+            String reason = args[0].toUpperCase();
+            double value = Double.parseDouble(args[1]);
+            if (regenModifiers.containsKey(reason)) {
+                regenModifiers.put(reason, value);
+                saveConfigJson();
+                sender.sendMessage("Regeneration rate for " + reason + " set to " + value);
+            } else {
+                sender.sendMessage("Invalid regeneration reason.");
+            }
         } catch (NumberFormatException e) {
             sender.sendMessage("Invalid number!");
         }
