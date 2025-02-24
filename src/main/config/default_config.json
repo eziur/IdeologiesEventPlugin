@@ -1,5 +1,6 @@
 {
   "health_regen_rate": 1.0,
   "max_health": 20.0,
-  "global_durability_modifier": 1.0
+  "global_durability_modifier": 1.0,
+  "spectator_heads_enabled": true
 }

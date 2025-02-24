@@ -32,6 +32,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     private double healthRegenRate;
     private double maxHealth;
     private double globalDurabilityModifier;
+    private boolean spectatorHeadsEnabled;
 
     @Override
     public void onEnable() {
@@ -98,6 +99,11 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         globalDurabilityModifier = configJson.has("global_durability_modifier")
                 ? configJson.get("global_durability_modifier").getAsDouble()
                 : 1.0;
+
+        spectatorHeadsEnabled = configJson.has("spectator_heads_enabled")
+                ? configJson.get("spectator_heads_enabled").getAsBoolean()
+                : true;
+
 
         // Apply the max health to all online players immediately
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -168,19 +174,13 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
             sender.sendMessage("Console usage: /" + label + " <value>");
         }
 
-        switch (command.getName().toLowerCase()) {
-            case "setregenrate":
-                return handleSetRegenRate(sender, args);
-
-            case "setmaxhealth":
-                return handleSetMaxHealth(sender, args);
-
-            case "setdurabilitymodifier":
-                return handleSetDurabilityModifier(sender, args);
-
-            default:
-                return false;
-        }
+        return switch (command.getName().toLowerCase()) {
+            case "setregenrate" -> handleSetRegenRate(sender, args);
+            case "setmaxhealth" -> handleSetMaxHealth(sender, args);
+            case "setdurabilitymodifier" -> handleSetDurabilityModifier(sender, args);
+            case "spectatorheads" -> handleSpectatorHeads(sender, args);
+            default -> false;
+        };
     }
 
     private boolean handleSetRegenRate(CommandSender sender, String[] args) {
@@ -233,6 +233,41 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
             sender.sendMessage("Global durability damage multiplier set to " + value + "!");
         } catch (NumberFormatException e) {
             sender.sendMessage("Invalid number!");
+        }
+        return true;
+    }
+
+    private boolean handleSpectatorHeads(CommandSender sender, String[] args) {
+        if (args[0].equalsIgnoreCase("on")) {
+            spectatorHeadsEnabled = true;
+
+            // Shows spectators to other spectators
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+                    for (Player target : Bukkit.getOnlinePlayers()) {
+                        if (target.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+                            player.showPlayer(this, target);
+                        }
+                    }
+                }
+            }
+            sender.sendMessage("Spectator heads are now visible.");
+        } else if (args[0].equalsIgnoreCase("off")) {
+            spectatorHeadsEnabled = false;
+
+            // Hides spectators from other spectators
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+                    for (Player target : Bukkit.getOnlinePlayers()) {
+                        if (target.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+                            player.hidePlayer(this, target);
+                        }
+                    }
+                }
+            }
+            sender.sendMessage("Spectator heads are now hidden.");
+        } else {
+            sender.sendMessage("Usage: /spectatorHeads <on|off>");
         }
         return true;
     }

@@ -14,3 +14,6 @@ commands:
   setDurabilityModifier:
     description: Set the global durability modifier
     usage: /setDurabilityModifier <value>
+  spectatorHeads:
+    description: sets visibility of spectators for other spectators
+    usage: /spectatorHeads <on/off>
