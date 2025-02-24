@@ -1,6 +1,14 @@
 {
-  "health_regen_rate": 1.0,
   "max_health": 20.0,
   "global_durability_modifier": 1.0,
-  "spectator_heads_enabled": true
+  "spectator_heads_enabled": true,
+  "regen_modifier_wither": 1.0,
+  "regen_modifier_eating": 1.0,
+  "regen_modifier_satiated": 1.0,
+  "regen_modifier_magic": 1.0,
+  "regen_modifier_custom": 1.0,
+  "regen_modifier_magic_regen": 1.0,
+  "regen_modifier_ender_crystal": 1.0,
+  "regen_modifier_regen": 1.0,
+  "regen_modifier_wither_spawn": 1.0
 }

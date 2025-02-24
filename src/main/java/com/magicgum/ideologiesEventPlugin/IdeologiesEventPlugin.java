@@ -16,6 +16,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -160,6 +161,19 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         int finalDamage = (int) Math.round(adjustedDamage);
 
         event.setDamage(finalDamage);
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player target = event.getPlayer();
+
+        if (!spectatorHeadsEnabled) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+                    player.hidePlayer(this, target);
+                }
+            }
+        }
     }
 
     // In Game Command Handling
