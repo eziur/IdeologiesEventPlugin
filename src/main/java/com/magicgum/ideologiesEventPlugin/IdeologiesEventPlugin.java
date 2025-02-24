@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -119,6 +120,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
             configJson.addProperty("health_regen_rate", healthRegenRate);
             configJson.addProperty("max_health", maxHealth);
             configJson.addProperty("global_durability_modifier", globalDurabilityModifier);
+            configJson.addProperty("spectator_heads_enabled", spectatorHeadsEnabled);
 
             // Write to disk
             try (FileWriter writer = new FileWriter(configFile)) {
@@ -170,8 +172,9 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     // In Game Command Handling
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player) && args.length == 0) {
-            sender.sendMessage("Console usage: /" + label + " <value>");
+        if (!(sender instanceof ConsoleCommandSender) && (!(sender instanceof Player) || !((Player) sender).isOp())) {
+            sender.sendMessage("You must be a server operator to use this command.");
+            return true;
         }
 
         return switch (command.getName().toLowerCase()) {
