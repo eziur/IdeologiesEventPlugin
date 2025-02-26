@@ -4,18 +4,19 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.magicgum.ideologiesEventPlugin.listeners.RegenerationListener;
+import com.magicgum.ideologiesEventPlugin.listeners.itemDamageListener;
+import com.magicgum.ideologiesEventPlugin.listeners.playerJoinListener;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
-import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -35,19 +36,18 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     // Cached config values
     private Map<String, Double> regenModifiers = new HashMap<>();
     private double maxHealth;
-    private double globalDurabilityModifier;
+    private double durabilityModifier;
     private boolean spectatorHeadsEnabled;
 
     @Override
     public void onEnable() {
-        // Load (or create) our JSON config
         loadConfigJson();
-
-        // Load config values into fields
         applyConfigValues();
 
-        // Register events
-        getServer().getPluginManager().registerEvents(this, this);
+        // Register listeners
+        getServer().getPluginManager().registerEvents(new RegenerationListener(this), this);
+        getServer().getPluginManager().registerEvents(new itemDamageListener(this), this);
+        getServer().getPluginManager().registerEvents(new playerJoinListener(this), this);
 
         getLogger().info("IdeologiesPlugin enabled!");
     }
@@ -93,7 +93,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
     private void applyConfigValues() {
         // Set defaults if they are missing in the JSON
         maxHealth = configJson.has("max_health") ? configJson.get("max_health").getAsDouble() : 20.0;
-        globalDurabilityModifier = configJson.has("global_durability_modifier") ? configJson.get("global_durability_modifier").getAsDouble() : 1.0;
+        durabilityModifier = configJson.has("global_durability_modifier") ? configJson.get("global_durability_modifier").getAsDouble() : 1.0;
         spectatorHeadsEnabled = configJson.has("spectator_heads_enabled") ? configJson.get("spectator_heads_enabled").getAsBoolean() : true;
 
         for (EntityRegainHealthEvent.RegainReason reason : EntityRegainHealthEvent.RegainReason.values()) {
@@ -113,7 +113,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
 
             // Update our in-memory JsonObject
             configJson.addProperty("max_health", maxHealth);
-            configJson.addProperty("global_durability_modifier", globalDurabilityModifier);
+            configJson.addProperty("global_durability_modifier", durabilityModifier);
             configJson.addProperty("spectator_heads_enabled", spectatorHeadsEnabled);
             regenModifiers.forEach((key, value) -> configJson.addProperty("regen_modifier_" + key.toLowerCase(), value));
 
@@ -126,54 +126,6 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         } catch (Exception e) {
             e.printStackTrace();
             getLogger().severe("Error saving config.json: " + e.getMessage());
-        }
-    }
-
-    // Event Listeners
-
-    // Control health regeneration rate and cap max health.
-    @EventHandler
-    public void onHealthRegen(EntityRegainHealthEvent event) {
-        if (event.getEntity() instanceof Player player) {
-            // Adjust the regained amount by our multiplier
-            double originalRegen = event.getAmount();
-            double modifier = regenModifiers.getOrDefault(event.getRegainReason().name(), 1.0);
-            event.setAmount(originalRegen * modifier);
-
-            // After applying regen, we also want to ensure player's health won't exceed maxHealth
-            // We'll do that by scheduling a small task afterward or by quick check.
-            Bukkit.getScheduler().runTaskLater(this, () -> {
-                double currentHealth = player.getHealth();
-                if (currentHealth > maxHealth) {
-                    player.setHealth(maxHealth);
-                }
-            }, 1L); // 1 tick later
-        }
-    }
-
-    // Control item durability, durability damage is multiplied by globalDurability Modifier
-    @EventHandler
-    public void onItemDamage(PlayerItemDamageEvent event) {
-        // event.getDamage() is how much durability is lost
-        int originalDamage = event.getDamage();
-
-        double adjustedDamage = originalDamage * globalDurabilityModifier;
-        int finalDamage = (int) Math.round(adjustedDamage);
-
-        event.setDamage(finalDamage);
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        Player target = event.getPlayer();
-
-        if (!spectatorHeadsEnabled) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
-                    player.hidePlayer(this, target);
-                    target.hidePlayer(this, player);
-                }
-            }
         }
     }
 
@@ -244,7 +196,7 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         }
         try {
             double value = Double.parseDouble(args[0]);
-            globalDurabilityModifier = value;
+            durabilityModifier = value;
             saveConfigJson();
             sender.sendMessage("Global durability damage multiplier set to " + value + "!");
         } catch (NumberFormatException e) {
@@ -296,5 +248,21 @@ public class IdeologiesEventPlugin extends JavaPlugin implements Listener {
         if (player.getHealth() > max) {
             player.setHealth(max);
         }
+    }
+
+    public Map<String, Double> getRegenModifiers() {
+        return regenModifiers;
+    }
+
+    public double getMaxHealth() {
+        return maxHealth;
+    }
+
+    public double getDurabilityModifier() {
+        return durabilityModifier;
+    }
+
+    public boolean getSpectatorHeadsEnabled() {
+        return spectatorHeadsEnabled;
     }
 }
